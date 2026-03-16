@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>3D Cyber Action - Enemy Combat Update</title>
+    <title>3D Cyber Action - Controller Start Update</title>
     <style>
         :root { --cyan: #00f2ff; --pink: #ff0066; --green: #00ff88; --dark-bg: rgba(0, 15, 10, 0.9); }
         body { margin: 0; overflow: hidden; background-color: #0b1a0e; font-family: 'Segoe UI', 'Orbitron', sans-serif; }
@@ -13,7 +13,7 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle, rgba(0,20,15,0.8) 0%, rgba(0,5,5,0.95) 100%);
             color: var(--cyan); display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; z-index: 1000; text-shadow: 0 0 15px var(--cyan);
+            cursor: pointer; z-index: 1000; text-shadow: 0 0 15px var(--cyan); text-align: center;
         }
 
         /* --- 中央大画面マップ --- */
@@ -52,7 +52,7 @@
         .weapon-slot.cooldown { opacity: 0.2 !important; }
         .item-slot { width: 70px; height: 70px; background: rgba(0,255,136,0.1); border: 2px solid var(--green); clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 10px var(--green); color: var(--green); }
 
-        /* 特殊画面効果 */
+        /* エフェクト */
         #attack-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; pointer-events: none; opacity: 0; z-index: 600; }
         #damage-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--pink); pointer-events: none; opacity: 0; z-index: 600; }
         #recovery-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--green); pointer-events: none; opacity: 0; z-index: 600; transition: opacity 0.5s; }
@@ -67,9 +67,14 @@
 <body>
 
 <div id="start-overlay">
-    <h1>MISSION START</h1>
-    <p>CLICK TO INITIALIZE SYSTEM</p>
-    <p style="font-size:14px; color:#aaa; margin-top:10px;">コントローラーをBluetoothで接続してください。</p>
+    <h1 style="letter-spacing:5px; font-size: 48px;">MISSION STANDBY</h1>
+    <p style="font-size: 20px;">[ START / + ] ボタンで初期化</p>
+    <div style="margin-top: 40px; font-size: 14px; color: #666; line-height: 1.6;">
+        ZR/R2: 攻撃 | ZL/L2: ガード | L1/R1: 武器切替<br>
+        X/△: 回復 | Y/□: 戦術マップ<br>
+        Bluetoothでコントローラーと接続（パソコンは有線可）<br>
+        <span style="color: var(--pink)">※初回のみ画面クリックが必要です</span>
+    </div>
 </div>
 
 <div id="map-container">
@@ -111,7 +116,7 @@
     import * as THREE from 'three';
     import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-    // --- 1. シーン構築 ---
+    // --- 1. 3Dシーン ---
     const scene = new THREE.Scene();
     const bgColor = 0x0b1a0e;
     scene.background = new THREE.Color(bgColor); scene.fog = new THREE.Fog(bgColor, 100, 1500);
@@ -125,7 +130,6 @@
     const moon = new THREE.DirectionalLight(0x00ffaa, 0.8);
     moon.position.set(100, 200, 100); scene.add(moon);
 
-    // 地形
     function getHeight(x, z) { return Math.sin(x/200) * Math.cos(z/200) * 45; }
     const terrainGeo = new THREE.PlaneGeometry(3000, 3000, 64, 64);
     terrainGeo.rotateX(-Math.PI / 2);
@@ -135,16 +139,13 @@
     const terrain = new THREE.Mesh(terrainGeo, new THREE.MeshPhongMaterial({ color: 0x122612, flatShading: true }));
     scene.add(terrain);
 
-    // 敵 (HP100 + AI)
     const enemies = [];
     const labelContainer = document.getElementById('enemy-labels-container');
     function createEnemy(x, z) {
         const g = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(16, 32, 16), new THREE.MeshPhongMaterial({color: 0x222222}));
-        body.position.y = 16; g.add(body);
-        const hat = new THREE.Mesh(new THREE.ConeGeometry(20, 12, 8), new THREE.MeshPhongMaterial({color: 0x333333}));
-        hat.position.y = 35; g.add(hat);
-        g.position.set(x, getHeight(x,z), z); scene.add(g);
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(16, 32, 16), new THREE.MeshPhongMaterial({color: 0x222222})));
+        g.add(new THREE.Mesh(new THREE.ConeGeometry(20, 12, 8), new THREE.MeshPhongMaterial({color: 0x333333})));
+        g.children[1].position.y = 16+16; g.position.set(x, getHeight(x,z), z); scene.add(g);
         const l = document.createElement('div'); l.className = 'enemy-label';
         l.innerHTML = `<div style="color:white;font-size:10px;">ミニオン</div><div class="enemy-hp-bar"><div class="enemy-hp-fill"></div></div>`;
         labelContainer.appendChild(l);
@@ -152,7 +153,6 @@
     }
     createEnemy(300, -300); createEnemy(-300, -400); createEnemy(100, -600);
 
-    // 武器モデル
     const sword = new THREE.Group();
     sword.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 8.5, 0.1), new THREE.MeshPhongMaterial({color: 0xcccccc})));
     sword.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.5, 0.6), new THREE.MeshPhongMaterial({color: 0x222222})));
@@ -162,8 +162,7 @@
     const shMat = new THREE.MeshPhongMaterial({ color: 0x00f2ff, emissive: 0x00f2ff, emissiveIntensity: 0.6 });
     for(let i=0; i<4; i++){ const b = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.5, 0.1), shMat); b.rotation.z = (i*Math.PI)/2; shuriken.add(b); }
     shuriken.position.set(1.5, -1.2, -3); shuriken.rotation.x = Math.PI / 2; shuriken.visible = false;
-    camera.add(shuriken);
-    scene.add(camera);
+    camera.add(shuriken); scene.add(camera);
 
     // --- 2. 管理システム ---
     const controls = new PointerLockControls(camera, document.body);
@@ -178,40 +177,62 @@
     const moveState = { f: false, b: false, l: false, r: false }, velocity = new THREE.Vector3();
     let gamepadIndex = null, lastButtons = {}, canJump = false;
 
-    overlay.addEventListener('click', () => { controls.lock(); camera.position.y = getHeight(camera.position.x, camera.position.z) + 20; });
-    controls.addEventListener('lock', () => { overlay.style.display = 'none'; hud.style.display = 'block'; document.getElementById('crosshair').style.display='block'; if(!gameActive) { startTime = Date.now(); gameActive = true; } updateStatusUI(); });
+    // スタート関数
+    function startGame() {
+        if (controls.isLocked) return;
+        controls.lock();
+        camera.position.y = getHeight(camera.position.x, camera.position.z) + 20;
+        overlay.style.display = 'none';
+        hud.style.display = 'block';
+        document.getElementById('crosshair').style.display='block';
+        enemies.forEach(e => e.alive && (e.label.style.display = 'block'));
+        if(!gameActive) { startTime = Date.now(); gameActive = true; }
+        updateStatusUI();
+    }
+
+    overlay.addEventListener('click', startGame);
     controls.addEventListener('unlock', () => { overlay.style.display = 'flex'; hud.style.display = 'none'; });
 
     document.addEventListener('keydown', (e) => { if(e.code === 'KeyE') useRecovery(); if(e.code === 'KeyM') toggleMap(); });
     function toggleMap() { isMapOpen = !isMapOpen; mapContainer.style.display = isMapOpen ? 'block' : 'none'; }
+    
     window.addEventListener("gamepadconnected", (e) => gamepadIndex = e.gamepad.index);
 
-    function handleGamepad(delta) {
+    function handleGamepad(delta, now) {
         if (gamepadIndex === null) return;
         const gp = navigator.getGamepads()[gamepadIndex];
+        if (!gp) return;
+
         const dz = 0.15;
         const sX = Math.abs(gp.axes[0]) < dz ? 0 : gp.axes[0], sY = Math.abs(gp.axes[1]) < dz ? 0 : gp.axes[1];
-        moveState.f = sY < 0; moveState.b = sY > 0; moveState.l = sX < 0; moveState.r = sX > 0;
+        
+        // --- スタートボタン判定 (Button 9: START/OPTIONS/+) ---
+        if (gp.buttons[9].pressed && !lastButtons[9]) {
+            startGame();
+        }
+
         if (controls.isLocked) {
+            moveState.f = sY < 0; moveState.b = sY > 0; moveState.l = sX < 0; moveState.r = sX > 0;
             camera.rotation.y -= (Math.abs(gp.axes[2]) < dz ? 0 : gp.axes[2]) * 2.8 * delta;
             camera.rotation.x -= (Math.abs(gp.axes[3]) < dz ? 0 : gp.axes[3]) * 2.8 * delta;
             camera.rotation.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camera.rotation.x));
             camera.rotation.z = 0;
+
+            if (gp.buttons[2].pressed && !lastButtons[2]) toggleMap();
+            isGuarding = (gp.buttons[6].pressed || gp.buttons[6].value > 0.1) && !isAttacking;
+            guardUI.style.display = isGuarding ? 'block' : 'none';
+            if (gp.buttons[7].pressed && !lastButtons[7] && canAttack && !isGuarding) performAttack();
+            if (gp.buttons[3].pressed && !lastButtons[3]) useRecovery();
+            if (gp.buttons[5].pressed && !lastButtons[5]) { currentWeaponIndex = (currentWeaponIndex + 1) % 3; updateWepUI(); }
+            if (gp.buttons[4].pressed && !lastButtons[4]) { currentWeaponIndex = (currentWeaponIndex + 2) % 3; updateWepUI(); }
+            if (gp.buttons[0].pressed && canJump) { velocity.y = 130; canJump = false; }
         }
-        if (gp.buttons[2].pressed && !lastButtons[2]) toggleMap();
-        isGuarding = (gp.buttons[6].pressed || gp.buttons[6].value > 0.1) && !isAttacking;
-        guardUI.style.display = isGuarding ? 'block' : 'none';
-        if (gp.buttons[7].pressed && !lastButtons[7] && canAttack && !isGuarding) performAttack();
-        if (gp.buttons[3].pressed && !lastButtons[3]) useRecovery();
-        if (gp.buttons[5].pressed && !lastButtons[5]) { currentWeaponIndex = (currentWeaponIndex + 1) % 3; updateWepUI(); }
-        if (gp.buttons[4].pressed && !lastButtons[4]) { currentWeaponIndex = (currentWeaponIndex + 2) % 3; updateWepUI(); }
-        if (gp.buttons[0].pressed && canJump) { velocity.y = 130; canJump = false; }
         gp.buttons.forEach((b, i) => lastButtons[i] = b.pressed);
     }
 
+    // --- 各種機能関数 ---
     function useRecovery() { if (recoveryCount > 0 && playerHp < 100) { recoveryCount--; playerHp = Math.min(100, playerHp + 40); updateStatusUI(); recFlashUI.style.opacity = '0.4'; setTimeout(() => recFlashUI.style.opacity = '0', 500); } }
     function updateStatusUI() { document.getElementById('hp-bar').style.width = playerHp + "%"; document.getElementById('hp-text').innerText = Math.round(playerHp); document.getElementById('item-count').innerText = "x" + recoveryCount; }
-
     function performAttack() {
         canAttack = false; isAttacking = true; flashUI.style.opacity = '0.3';
         const slots = [document.getElementById('slot-0'), document.getElementById('slot-1'), document.getElementById('slot-2')];
@@ -221,7 +242,6 @@
         setTimeout(() => { isAttacking = false; flashUI.style.opacity = '0'; sword.rotation.x = -0.2; }, 150);
         setTimeout(() => { canAttack = true; slots[currentWeaponIndex].classList.remove('cooldown'); }, cooldowns[currentWeaponIndex]);
     }
-
     function fireShuriken() {
         const p = shuriken.clone(); p.visible = true;
         const vec = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -229,48 +249,40 @@
         p.quaternion.copy(camera.quaternion); p.rotation.x = Math.PI/2;
         scene.add(p); projectiles.push({ mesh: p, velocity: vec.multiplyScalar(500), life: 100 });
     }
-
     function applyDamage(e, amt) { e.hp = Math.max(0, e.hp - amt); e.hpFill.style.width = e.hp + "%"; if(e.hp <= 0){ e.alive = false; scene.remove(e.mesh); e.label.style.display = 'none'; } }
     function updateWepUI() { [document.getElementById('slot-0'), document.getElementById('slot-1'), document.getElementById('slot-2')].forEach((s, i) => s.classList.toggle('active', i === currentWeaponIndex)); sword.visible = (currentWeaponIndex === 1); shuriken.visible = (currentWeaponIndex === 0); document.getElementById('attack-pwr').innerText = [36, 124, 45][currentWeaponIndex]; }
 
-    // --- 3. AI & 被弾ロジック ---
     function updateAI(delta, now) {
         enemies.forEach(e => {
             if (!e.alive) return;
             const dist = camera.position.distanceTo(e.mesh.position);
-            
-            // 追跡
             if (dist < 800 && dist > 50) {
                 const dir = new THREE.Vector3().subVectors(camera.position, e.mesh.position).normalize();
-                e.mesh.position.x += dir.x * e.speed * delta;
-                e.mesh.position.z += dir.z * e.speed * delta;
+                e.mesh.position.x += dir.x * e.speed * delta; e.mesh.position.z += dir.z * e.speed * delta;
                 e.mesh.position.y = getHeight(e.mesh.position.x, e.mesh.position.z);
                 e.mesh.lookAt(camera.position.x, e.mesh.position.y, camera.position.z);
             }
-            
-            // 【新機能】攻撃判定 (50ユニット以内)
             if (dist < 60 && now - e.lastAtk > 2000) {
                 e.lastAtk = now;
                 if (!isGuarding) {
-                    playerHp = Math.max(0, playerHp - 10);
-                    updateStatusUI();
-                    // 被弾エフェクト
-                    dmgFlashUI.style.opacity = '0.5';
-                    setTimeout(() => dmgFlashUI.style.opacity = '0', 100);
-                    
-                    if (playerHp <= 0) {
-                        alert("MISSION FAILED: SYSTEM RESET");
-                        playerHp = 100; updateStatusUI();
-                        camera.position.set(0, 20, 0);
-                    }
+                    playerHp = Math.max(0, playerHp - 10); updateStatusUI();
+                    dmgFlashUI.style.opacity = '0.5'; setTimeout(() => dmgFlashUI.style.opacity = '0', 100);
+                    if (playerHp <= 0) { playerHp = 100; updateStatusUI(); camera.position.set(0, 20, 0); }
                 } else {
-                    // ガード成功エフェクト（青いフラッシュ）
-                    flashUI.style.background = "var(--cyan)";
-                    flashUI.style.opacity = '0.2';
+                    flashUI.style.background = "var(--cyan)"; flashUI.style.opacity = '0.2';
                     setTimeout(() => { flashUI.style.opacity = '0'; flashUI.style.background = "white"; }, 100);
                 }
             }
         });
+    }
+
+    function drawMap() {
+        if (!isMapOpen) return;
+        const s = mapCanvas.clientWidth; mapCanvas.width = s; mapCanvas.height = s;
+        const sc = s / 1500, cx = s / 2, cy = s / 2;
+        ctx.clearRect(0, 0, s, s);
+        ctx.fillStyle = "red"; enemies.forEach(e => { if (e.alive) ctx.beginPath(), ctx.arc(cx+(e.mesh.position.x-camera.position.x)*sc, cy+(e.mesh.position.z-camera.position.z)*sc, 6, 0, 7), ctx.fill(); });
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(-camera.rotation.y); ctx.fillStyle = "#0f8"; ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(8,8); ctx.lineTo(-8,8); ctx.fill(); ctx.restore();
     }
 
     const ray = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 100);
@@ -279,8 +291,9 @@
     function animate() {
         requestAnimationFrame(animate);
         const time = performance.now(), delta = Math.min((time - prevTime) / 1000, 0.05);
-        handleGamepad(delta);
+        handleGamepad(delta, time);
         if (gameActive) updateAI(delta, time);
+        if (isMapOpen) drawMap();
 
         if (controls.isLocked) {
             const rem = Math.max(0, 300 - Math.floor((time - startTime) / 1000));
@@ -295,7 +308,6 @@
             const hit = ray.intersectObject(terrain);
             if (hit.length > 0) { const gY = hit[0].point.y + 20; if (camera.position.y <= gY) { velocity.y = 0; camera.position.y = gY; canJump = true; } }
 
-            // 武器アニメ
             if (sword.visible && !isAttacking) { 
                 if (isGuarding) { sword.position.lerp(new THREE.Vector3(0, -0.5, -2.5), 0.2); sword.rotation.z = Math.PI/4; }
                 else { sword.position.lerp(new THREE.Vector3(1.5, -1.8, -3.5), 0.1); sword.rotation.z = 0; sword.position.y += Math.sin(time*0.002)*0.002; }
@@ -310,16 +322,7 @@
                 if (hAny || p.life <= 0) { scene.remove(p.mesh); projectiles.splice(i, 1); }
             }
         }
-        
-        if (isMapOpen) {
-            const s = mapCanvas.clientWidth; mapCanvas.width = s; mapCanvas.height = s;
-            const sc = s / 1500, cx = s / 2, cy = s / 2;
-            ctx.clearRect(0, 0, s, s);
-            ctx.fillStyle = "red"; enemies.forEach(e => { if (e.alive) ctx.beginPath(), ctx.arc(cx+(e.mesh.position.x-camera.position.x)*sc, cy+(e.mesh.position.z-camera.position.z)*sc, 6, 0, 7), ctx.fill(); });
-            ctx.save(); ctx.translate(cx, cy); ctx.rotate(-camera.rotation.y); ctx.fillStyle = "#0f8"; ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(8,8); ctx.lineTo(-8,8); ctx.fill(); ctx.restore();
-        }
         enemies.forEach(e => { if (e.alive) { v3.setFromMatrixPosition(e.mesh.matrixWorld); v3.y += 42; v3.project(camera); const x = (v3.x*0.5+0.5)*window.innerWidth, y = (v3.y*-0.5+0.5)*window.innerHeight; if (v3.z < 1) { e.label.style.display = controls.isLocked ? 'block' : 'none'; e.label.style.left = `${x}px`; e.label.style.top = `${y}px`; } else e.label.style.display = 'none'; } });
-
         prevTime = time; renderer.render(scene, camera);
     }
     animate();
