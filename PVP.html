@@ -2,16 +2,17 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>3D Cyber Action - Controller Start Update</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Cyber Action - Universal Start Update</title>
     <style>
         :root { --cyan: #00f2ff; --pink: #ff0066; --green: #00ff88; --dark-bg: rgba(0, 15, 10, 0.9); }
-        body { margin: 0; overflow: hidden; background-color: #0b1a0e; font-family: 'Segoe UI', 'Orbitron', sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #0b1a0e; font-family: 'Segoe UI', 'Orbitron', sans-serif; touch-action: none; }
         canvas { display: block; }
 
-        /* --- スタート画面 --- */
+        /* --- スタート画面（全端末対応） --- */
         #start-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, rgba(0,20,15,0.8) 0%, rgba(0,5,5,0.95) 100%);
+            background: radial-gradient(circle, rgba(0,20,15,0.9) 0%, rgba(0,5,5,1) 100%);
             color: var(--cyan); display: flex; flex-direction: column; justify-content: center; align-items: center;
             cursor: pointer; z-index: 1000; text-shadow: 0 0 15px var(--cyan); text-align: center;
         }
@@ -28,24 +29,30 @@
         /* --- ゲームHUD --- */
         #game-hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; color: white; padding: 25px; box-sizing: border-box; }
 
+        /* 左上：クラスター */
         .hud-left-top { position: absolute; top: 25px; left: 25px; }
         .diamond-cluster { position: relative; width: 130px; height: 130px; }
         .diamond { position: absolute; background: rgba(0, 20, 15, 0.7); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; }
         .diamond.main { width: 70px; height: 70px; top: 25px; left: 25px; border: 3px solid var(--cyan); color: white; font-size: 24px; box-shadow: 0 0 15px var(--cyan); z-index: 5; }
-        .diamond.sub-tr { width: 36px; height: 36px; top: 0px; left: 75px; border: 2px solid var(--pink); color: white; font-size: 11px; z-index: 6; }
+        .diamond.sub-tr { width: 36px; height: 36px; top: 0px; left: 75px; border: 2px solid var(--pink); font-size: 11px; z-index: 6; }
         .diamond.sub-br { width: 36px; height: 36px; top: 65px; left: 85px; border: 2px solid var(--cyan); color: var(--cyan); font-size: 11px; z-index: 6; }
-        .diamond.sub-bl { width: 36px; height: 36px; top: 75px; left: 0px; border: 2px solid var(--pink); color: white; font-size: 11px; z-index: 4; }
+        .diamond.sub-bl { width: 36px; height: 36px; top: 75px; left: 0px; border: 2px solid var(--pink); font-size: 11px; z-index: 4; }
 
+        /* 中央上：タイマー */
         .hud-center-top { position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
         .timer-frame { height: 60px; width: 220px; background: rgba(0, 20, 15, 0.8); border-top: 3px solid var(--cyan); clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%); display: flex; align-items: center; justify-content: center; }
         .timer-text { font-size: 34px; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px var(--cyan); }
 
+        /* 左下：ステータスバー (HP/Energy) */
         .hud-left-bottom { position: absolute; bottom: 35px; left: 30px; display: flex; flex-direction: column; gap: 10px; }
+        .status-row { display: flex; align-items: center; gap: 10px; }
         .status-meta { background: rgba(0,0,0,0.5); padding: 2px 8px; transform: skewX(-20deg); border-left: 2px solid white; min-width: 65px; text-align: center;}
         .val-main { font-weight: bold; font-size: 15px; transform: skewX(20deg); font-family: monospace; }
         .bar-outer { width: 200px; height: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); transform: skewX(-20deg); overflow: hidden; }
         .bar-fill { height: 100%; width: 100%; background: var(--pink); box-shadow: 0 0 15px var(--pink); transition: width 0.3s; }
+        .bar-fill.cyan { width: 85%; background: var(--cyan); box-shadow: 0 0 15px var(--cyan); }
 
+        /* 右下：武器 & アイテム */
         .hud-right-bottom { position: absolute; bottom: 30px; right: 30px; display: flex; align-items: flex-end; gap: 12px; }
         .weapon-slot { width: 60px; height: 60px; background: rgba(0,20,15,0.7); border: 2px solid rgba(0,242,255,0.2); display: flex; align-items: center; justify-content: center; clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%); opacity: 0.6; transition: 0.2s; }
         .weapon-slot.active { border-color: var(--cyan); background: rgba(0,242,255,0.2); opacity: 1; box-shadow: 0 0 15px var(--cyan); transform: scale(1.1); }
@@ -58,27 +65,24 @@
         #recovery-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--green); pointer-events: none; opacity: 0; z-index: 600; transition: opacity 0.5s; }
         #guard-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0, 242, 255, 0.5); border: 15px solid rgba(0, 242, 255, 0.1); display: none; z-index: 50; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); display: none; }
-        
         .enemy-label { position: absolute; transform: translate(-50%, -100%); display: none; text-align: center; }
-        .enemy-hp-bar { width: 60px; height: 6px; background: #333; border: 1px solid black; }
-        .enemy-hp-fill { height: 100%; width: 100%; background: var(--pink); }
+        .enemy-hp { width: 60px; height: 5px; background: var(--pink); border: 1px solid black; }
     </style>
 </head>
 <body>
 
 <div id="start-overlay">
-    <h1 style="letter-spacing:5px; font-size: 48px;">MISSION STANDBY</h1>
-    <p style="font-size: 20px;">[ START / + ] ボタンで初期化</p>
-    <div style="margin-top: 40px; font-size: 14px; color: #666; line-height: 1.6;">
-        ZR/R2: 攻撃 | ZL/L2: ガード | L1/R1: 武器切替<br>
-        X/△: 回復 | Y/□: 戦術マップ<br>
-        Bluetoothでコントローラーと接続（パソコンは有線可）<br>
-        <span style="color: var(--pink)">※初回のみ画面クリックが必要です</span>
+    <h1 style="letter-spacing:8px; font-size: 10vw;">MISSION START</h1>
+    <p style="font-size: 4vw; margin-top: 20px;">TAP TO INITIALIZE SYSTEM</p>
+    <div style="margin-top: 50px; font-size: 14px; color: #666; line-height: 1.8;">
+        [Tap/Click] または [START/+] ボタン<br>
+        ZR/R2:攻撃 | ZL/L2:ガード | L1-R1:切替<br>
+        X/△:回復 | Y/□:マップ
     </div>
 </div>
 
 <div id="map-container">
-    <div style="padding:15px; color:var(--cyan); font-weight:bold;">TACTICAL OVERVIEW</div>
+    <div style="padding:15px; color:var(--cyan); font-weight:bold;">TACTICAL DATA OVERVIEW</div>
     <canvas id="map-canvas"></canvas>
 </div>
 
@@ -92,6 +96,7 @@
     </div>
     <div class="hud-left-bottom">
         <div class="status-row"><div class="status-meta"><div class="val-main" id="hp-text">100</div></div><div class="bar-outer"><div class="bar-fill" id="hp-bar"></div></div></div>
+        <div class="status-row"><div class="status-meta"><div class="val-main">92</div></div><div class="bar-outer"><div class="bar-fill cyan"></div></div></div>
     </div>
     <div class="hud-right-bottom">
         <div class="weapon-slot" id="slot-0"><svg style="width:40px;height:40px;fill:var(--cyan);" viewBox="0 0 100 100"><path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" /></svg></div>
@@ -116,20 +121,21 @@
     import * as THREE from 'three';
     import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-    // --- 1. 3Dシーン ---
-    const scene = new THREE.Scene();
+    // --- 1. システム構築 ---
     const bgColor = 0x0b1a0e;
+    const scene = new THREE.Scene();
     scene.background = new THREE.Color(bgColor); scene.fog = new THREE.Fog(bgColor, 100, 1500);
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 3000);
     camera.rotation.order = 'YXZ';
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
-    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const moon = new THREE.DirectionalLight(0x00ffaa, 0.8);
     moon.position.set(100, 200, 100); scene.add(moon);
 
+    // 地形生成
     function getHeight(x, z) { return Math.sin(x/200) * Math.cos(z/200) * 45; }
     const terrainGeo = new THREE.PlaneGeometry(3000, 3000, 64, 64);
     terrainGeo.rotateX(-Math.PI / 2);
@@ -139,20 +145,29 @@
     const terrain = new THREE.Mesh(terrainGeo, new THREE.MeshPhongMaterial({ color: 0x122612, flatShading: true }));
     scene.add(terrain);
 
+    // 竹林
+    for(let i=0; i<250; i++) {
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2, 180, 6), new THREE.MeshPhongMaterial({ color: 0x142b14 }));
+        const rx = (Math.random()-0.5)*1500, rz = (Math.random()-0.5)*1500;
+        b.position.set(rx, getHeight(rx, rz)+90, rz); scene.add(b);
+    }
+
+    // 敵 (HP100)
     const enemies = [];
     const labelContainer = document.getElementById('enemy-labels-container');
     function createEnemy(x, z) {
         const g = new THREE.Group();
         g.add(new THREE.Mesh(new THREE.BoxGeometry(16, 32, 16), new THREE.MeshPhongMaterial({color: 0x222222})));
         g.add(new THREE.Mesh(new THREE.ConeGeometry(20, 12, 8), new THREE.MeshPhongMaterial({color: 0x333333})));
-        g.children[1].position.y = 16+16; g.position.set(x, getHeight(x,z), z); scene.add(g);
+        g.children[1].position.y = 32; g.position.set(x, getHeight(x,z), z); scene.add(g);
         const l = document.createElement('div'); l.className = 'enemy-label';
-        l.innerHTML = `<div style="color:white;font-size:10px;">ミニオン</div><div class="enemy-hp-bar"><div class="enemy-hp-fill"></div></div>`;
+        l.innerHTML = `<div style="color:white;font-size:10px;">ミニオン</div><div style="width:60px;height:5px;background:#333;border:1px solid black;"><div style="width:100%;height:100%;background:var(--pink);" class="enemy-hp-fill"></div></div>`;
         labelContainer.appendChild(l);
-        enemies.push({ mesh: g, label: l, hpFill: l.querySelector('.enemy-hp-fill'), hp: 100, alive: true, speed: 100, lastAtk: 0 });
+        enemies.push({ mesh: g, label: l, hpFill: l.querySelector('.enemy-hp-fill'), hp: 100, alive: true, speed: 110, lastAtk: 0 });
     }
-    createEnemy(300, -300); createEnemy(-300, -400); createEnemy(100, -600);
+    createEnemy(350, -350); createEnemy(-350, -450); createEnemy(150, -700);
 
+    // 武器モデル
     const sword = new THREE.Group();
     sword.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 8.5, 0.1), new THREE.MeshPhongMaterial({color: 0xcccccc})));
     sword.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.5, 0.6), new THREE.MeshPhongMaterial({color: 0x222222})));
@@ -164,7 +179,7 @@
     shuriken.position.set(1.5, -1.2, -3); shuriken.rotation.x = Math.PI / 2; shuriken.visible = false;
     camera.add(shuriken); scene.add(camera);
 
-    // --- 2. 管理システム ---
+    // --- 2. 操作・管理システム ---
     const controls = new PointerLockControls(camera, document.body);
     const overlay = document.getElementById('start-overlay'), hud = document.getElementById('game-hud');
     const guardUI = document.getElementById('guard-overlay'), flashUI = document.getElementById('attack-flash');
@@ -177,10 +192,13 @@
     const moveState = { f: false, b: false, l: false, r: false }, velocity = new THREE.Vector3();
     let gamepadIndex = null, lastButtons = {}, canJump = false;
 
-    // スタート関数
+    // 【重要】全端末対応スタート関数
     function startGame() {
-        if (controls.isLocked) return;
-        controls.lock();
+        if (gameActive && controls.isLocked) return;
+        
+        // PCならPointerLockを要求、モバイルならUI切り替えのみ
+        try { controls.lock(); } catch(e) {}
+        
         camera.position.y = getHeight(camera.position.x, camera.position.z) + 20;
         overlay.style.display = 'none';
         hud.style.display = 'block';
@@ -190,34 +208,28 @@
         updateStatusUI();
     }
 
+    // 画面のどこをタップしてもスタート
     overlay.addEventListener('click', startGame);
-    controls.addEventListener('unlock', () => { overlay.style.display = 'flex'; hud.style.display = 'none'; });
+    overlay.addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); }, {passive: false});
+
+    controls.addEventListener('unlock', () => { if(gameActive) overlay.style.display = 'flex'; });
 
     document.addEventListener('keydown', (e) => { if(e.code === 'KeyE') useRecovery(); if(e.code === 'KeyM') toggleMap(); });
     function toggleMap() { isMapOpen = !isMapOpen; mapContainer.style.display = isMapOpen ? 'block' : 'none'; }
-    
     window.addEventListener("gamepadconnected", (e) => gamepadIndex = e.gamepad.index);
 
     function handleGamepad(delta, now) {
         if (gamepadIndex === null) return;
-        const gp = navigator.getGamepads()[gamepadIndex];
-        if (!gp) return;
-
+        const gp = navigator.getGamepads()[gamepadIndex]; if (!gp) return;
         const dz = 0.15;
         const sX = Math.abs(gp.axes[0]) < dz ? 0 : gp.axes[0], sY = Math.abs(gp.axes[1]) < dz ? 0 : gp.axes[1];
-        
-        // --- スタートボタン判定 (Button 9: START/OPTIONS/+) ---
-        if (gp.buttons[9].pressed && !lastButtons[9]) {
-            startGame();
-        }
-
-        if (controls.isLocked) {
+        if (gp.buttons[9].pressed && !lastButtons[9]) startGame();
+        if (controls.isLocked || gameActive) {
             moveState.f = sY < 0; moveState.b = sY > 0; moveState.l = sX < 0; moveState.r = sX > 0;
-            camera.rotation.y -= (Math.abs(gp.axes[2]) < dz ? 0 : gp.axes[2]) * 2.8 * delta;
-            camera.rotation.x -= (Math.abs(gp.axes[3]) < dz ? 0 : gp.axes[3]) * 2.8 * delta;
+            camera.rotation.y -= (Math.abs(gp.axes[2]) < dz ? 0 : gp.axes[2]) * 3.0 * delta;
+            camera.rotation.x -= (Math.abs(gp.axes[3]) < dz ? 0 : gp.axes[3]) * 3.0 * delta;
             camera.rotation.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camera.rotation.x));
             camera.rotation.z = 0;
-
             if (gp.buttons[2].pressed && !lastButtons[2]) toggleMap();
             isGuarding = (gp.buttons[6].pressed || gp.buttons[6].value > 0.1) && !isAttacking;
             guardUI.style.display = isGuarding ? 'block' : 'none';
@@ -230,9 +242,9 @@
         gp.buttons.forEach((b, i) => lastButtons[i] = b.pressed);
     }
 
-    // --- 各種機能関数 ---
     function useRecovery() { if (recoveryCount > 0 && playerHp < 100) { recoveryCount--; playerHp = Math.min(100, playerHp + 40); updateStatusUI(); recFlashUI.style.opacity = '0.4'; setTimeout(() => recFlashUI.style.opacity = '0', 500); } }
     function updateStatusUI() { document.getElementById('hp-bar').style.width = playerHp + "%"; document.getElementById('hp-text').innerText = Math.round(playerHp); document.getElementById('item-count').innerText = "x" + recoveryCount; }
+
     function performAttack() {
         canAttack = false; isAttacking = true; flashUI.style.opacity = '0.3';
         const slots = [document.getElementById('slot-0'), document.getElementById('slot-1'), document.getElementById('slot-2')];
@@ -256,13 +268,13 @@
         enemies.forEach(e => {
             if (!e.alive) return;
             const dist = camera.position.distanceTo(e.mesh.position);
-            if (dist < 800 && dist > 50) {
+            if (dist < 800 && dist > 55) {
                 const dir = new THREE.Vector3().subVectors(camera.position, e.mesh.position).normalize();
                 e.mesh.position.x += dir.x * e.speed * delta; e.mesh.position.z += dir.z * e.speed * delta;
                 e.mesh.position.y = getHeight(e.mesh.position.x, e.mesh.position.z);
                 e.mesh.lookAt(camera.position.x, e.mesh.position.y, camera.position.z);
             }
-            if (dist < 60 && now - e.lastAtk > 2000) {
+            if (dist < 65 && now - e.lastAtk > 2000) {
                 e.lastAtk = now;
                 if (!isGuarding) {
                     playerHp = Math.max(0, playerHp - 10); updateStatusUI();
@@ -281,8 +293,8 @@
         const s = mapCanvas.clientWidth; mapCanvas.width = s; mapCanvas.height = s;
         const sc = s / 1500, cx = s / 2, cy = s / 2;
         ctx.clearRect(0, 0, s, s);
-        ctx.fillStyle = "red"; enemies.forEach(e => { if (e.alive) ctx.beginPath(), ctx.arc(cx+(e.mesh.position.x-camera.position.x)*sc, cy+(e.mesh.position.z-camera.position.z)*sc, 6, 0, 7), ctx.fill(); });
-        ctx.save(); ctx.translate(cx, cy); ctx.rotate(-camera.rotation.y); ctx.fillStyle = "#0f8"; ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(8,8); ctx.lineTo(-8,8); ctx.fill(); ctx.restore();
+        ctx.fillStyle = "red"; enemies.forEach(e => { if (e.alive) ctx.beginPath(), ctx.arc(cx+(e.mesh.position.x-camera.position.x)*sc, cy+(e.mesh.position.z-camera.position.z)*sc, 8, 0, 7), ctx.fill(); });
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(-camera.rotation.y); ctx.fillStyle = "#0f8"; ctx.beginPath(); ctx.moveTo(0,-15); ctx.lineTo(10,10); ctx.lineTo(-10,10); ctx.fill(); ctx.restore();
     }
 
     const ray = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 100);
@@ -295,7 +307,7 @@
         if (gameActive) updateAI(delta, time);
         if (isMapOpen) drawMap();
 
-        if (controls.isLocked) {
+        if (gameActive && (controls.isLocked || gamepadIndex !== null)) {
             const rem = Math.max(0, 300 - Math.floor((time - startTime) / 1000));
             document.getElementById('timer-display').innerText = `${Math.floor(rem/60).toString().padStart(2,'0')}:${(rem%60).toString().padStart(2,'0')}`;
             velocity.x -= velocity.x * 10 * delta; velocity.z -= velocity.z * 10 * delta; velocity.y -= 9.8 * 40 * delta;
@@ -322,7 +334,7 @@
                 if (hAny || p.life <= 0) { scene.remove(p.mesh); projectiles.splice(i, 1); }
             }
         }
-        enemies.forEach(e => { if (e.alive) { v3.setFromMatrixPosition(e.mesh.matrixWorld); v3.y += 42; v3.project(camera); const x = (v3.x*0.5+0.5)*window.innerWidth, y = (v3.y*-0.5+0.5)*window.innerHeight; if (v3.z < 1) { e.label.style.display = controls.isLocked ? 'block' : 'none'; e.label.style.left = `${x}px`; e.label.style.top = `${y}px`; } else e.label.style.display = 'none'; } });
+        enemies.forEach(e => { if (e.alive) { v3.setFromMatrixPosition(e.mesh.matrixWorld); v3.y += 42; v3.project(camera); const x = (v3.x*0.5+0.5)*window.innerWidth, y = (v3.y*-0.5+0.5)*window.innerHeight; if (v3.z < 1) { e.label.style.display = gameActive ? 'block' : 'none'; e.label.style.left = `${x}px`; e.label.style.top = `${y}px`; } else e.label.style.display = 'none'; } });
         prevTime = time; renderer.render(scene, camera);
     }
     animate();
