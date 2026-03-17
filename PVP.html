@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Cyber Action - Melee Range 8m Update</title>
+    <title>3D Cyber Action - Infinite Spawn Update</title>
     <style>
         :root { --cyan: #00f2ff; --pink: #ff0066; --green: #00ff88; --dark-bg: rgba(0, 15, 10, 0.9); }
         body { margin: 0; overflow: hidden; background-color: #0b1a0e; font-family: 'Segoe UI', 'Orbitron', sans-serif; touch-action: none; }
@@ -29,7 +29,6 @@
         /* --- ゲームHUD --- */
         #game-hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; color: white; padding: 25px; box-sizing: border-box; }
 
-        /* 左上：攻撃力クラスター */
         .hud-left-top { position: absolute; top: 25px; left: 25px; }
         .diamond-cluster { position: relative; width: 130px; height: 130px; }
         .diamond { position: absolute; background: rgba(0, 20, 15, 0.7); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; }
@@ -38,41 +37,33 @@
         .diamond.sub-br { width: 36px; height: 36px; top: 65px; left: 85px; border: 2px solid var(--cyan); color: var(--cyan); font-size: 11px; z-index: 6; }
         .diamond.sub-bl { width: 36px; height: 36px; top: 75px; left: 0px; border: 2px solid var(--pink); color: white; font-size: 11px; z-index: 4; }
 
-        /* 中央上：タイマー */
         .hud-center-top { position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
         .timer-frame { height: 60px; width: 220px; background: rgba(0, 20, 15, 0.8); border-top: 3px solid var(--cyan); clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%); display: flex; align-items: center; justify-content: center; }
         .timer-text { font-size: 34px; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px var(--cyan); }
 
-        /* 左下：ステータスバー */
         .hud-left-bottom { position: absolute; bottom: 35px; left: 30px; display: flex; flex-direction: column; gap: 10px; }
         .status-row { display: flex; align-items: center; gap: 10px; }
         .status-meta { background: rgba(0,0,0,0.5); padding: 2px 8px; transform: skewX(-20deg); border-left: 2px solid white; min-width: 65px; text-align: center;}
         .val-main { font-weight: bold; font-size: 15px; transform: skewX(20deg); font-family: monospace; }
-        .bar-outer { width: 200px; height: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); transform: skewX(-20deg); overflow: hidden; }
+        .bar-outer { width: 190px; height: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); transform: skewX(-20deg); overflow: hidden; }
         .bar-fill { height: 100%; width: 100%; background: var(--pink); box-shadow: 0 0 15px var(--pink); transition: width 0.3s; }
 
-        /* 右下：武器 & 回復アイテム */
         .hud-right-bottom { position: absolute; bottom: 30px; right: 30px; display: flex; align-items: flex-end; gap: 12px; }
         .weapon-slot { width: 60px; height: 60px; background: rgba(0,20,15,0.7); border: 2px solid rgba(0,242,255,0.2); display: flex; align-items: center; justify-content: center; clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%); opacity: 0.6; transition: 0.2s; }
         .weapon-slot.active { border-color: var(--cyan); background: rgba(0,242,255,0.2); opacity: 1; box-shadow: 0 0 15px var(--cyan); transform: scale(1.1); }
         .weapon-slot.cooldown { opacity: 0.2 !important; }
         .item-slot { width: 70px; height: 70px; background: rgba(0,255,136,0.1); border: 2px solid var(--green); clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 10px var(--green); color: var(--green); }
 
-        .shuriken-icon { width: 42px; height: 42px; fill: var(--cyan); }
-        .active .shuriken-icon { animation: spin-ui 3s linear infinite; }
-        @keyframes spin-ui { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* 特殊画面エフェクト */
         #attack-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; pointer-events: none; opacity: 0; z-index: 600; }
         #damage-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--pink); pointer-events: none; opacity: 0; z-index: 600; }
         #recovery-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--green); pointer-events: none; opacity: 0; z-index: 600; transition: opacity 0.5s; }
         #guard-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0, 242, 255, 0.5); border: 15px solid rgba(0, 242, 255, 0.1); display: none; z-index: 50; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); display: none; }
-        #crosshair.attacking { border-color: var(--pink); transform: translate(-50%, -50%) scale(1.5); background: rgba(255,0,102,0.2); }
+        #crosshair.attacking { border-color: var(--pink); transform: translate(-50%, -50%) scale(1.5); }
 
         .enemy-label { position: absolute; transform: translate(-50%, -100%); display: none; text-align: center; }
         .enemy-hp-bar { width: 60px; height: 6px; background: #333; border: 1px solid black; }
-        .enemy-hp-fill { height: 100%; width: 100%; background: var(--pink); transition: width 0.2s; }
+        .enemy-hp-fill { height: 100%; width: 100%; background: var(--pink); }
     </style>
 </head>
 <body>
@@ -81,8 +72,8 @@
     <h1 style="letter-spacing:8px; font-size: 8vw;">MISSION START</h1>
     <p style="font-size: 3vw; margin-top: 20px;">TAP TO INITIALIZE SYSTEM</p>
     <div style="margin-top: 50px; font-size: 14px; color: #666; line-height: 1.8;">
-        ⚔️剣: 8m以内の敵全員に30ダメージ<br>
-        ZR/R2:攻撃 | ZL/L2:ガード | X/△:回復 | Y/□:マップ
+        LIMIT: 05:00 | ENEMY RESPAWN: EVERY 10s<br>
+        ⚔️剣(8m/30点) | 卍手裏剣(10点) | ZL:ガード
     </div>
 </div>
 
@@ -125,7 +116,7 @@
     import * as THREE from 'three';
     import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-    // --- 1. システム構築 ---
+    // --- 1. 基本設定 ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b1a0e); scene.fog = new THREE.Fog(0x0b1a0e, 100, 1500);
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 3000);
@@ -148,20 +139,33 @@
     const terrain = new THREE.Mesh(terrainGeo, new THREE.MeshPhongMaterial({ color: 0x122612, flatShading: true }));
     scene.add(terrain);
 
-    // 敵 (HP100)
+    // 竹林
+    for(let i=0; i<200; i++) {
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2, 180, 6), new THREE.MeshPhongMaterial({ color: 0x142b14 }));
+        const rx = (Math.random()-0.5)*1800, rz = (Math.random()-0.5)*1800;
+        b.position.set(rx, getHeight(rx, rz)+90, rz); scene.add(b);
+    }
+
+    // --- 2. 敵の管理システム ---
     const enemies = [];
     const labelContainer = document.getElementById('enemy-labels-container');
+    
     function createEnemy(x, z) {
         const g = new THREE.Group();
         g.add(new THREE.Mesh(new THREE.BoxGeometry(16, 32, 16), new THREE.MeshPhongMaterial({color: 0x222222})));
         g.add(new THREE.Mesh(new THREE.ConeGeometry(20, 12, 8), new THREE.MeshPhongMaterial({color: 0x333333})));
         g.children[1].position.y = 32; g.position.set(x, getHeight(x,z), z); scene.add(g);
+        
         const l = document.createElement('div'); l.className = 'enemy-label';
-        l.innerHTML = `<div style="color:white;font-size:10px;">ミニオン</div><div class="enemy-hp-bar"><div class="enemy-hp-fill"></div></div>`;
+        l.innerHTML = `<div style="color:white;font-size:10px;">ミニオン</div><div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:100%; height:100%; background:var(--pink);"></div></div>`;
+        if (gameActive) l.style.display = 'block';
         labelContainer.appendChild(l);
+        
         enemies.push({ mesh: g, label: l, hpFill: l.querySelector('.enemy-hp-fill'), hp: 100, alive: true, speed: 110, lastAtk: 0 });
     }
-    createEnemy(400, -300); createEnemy(-300, -500); createEnemy(0, -700);
+
+    // 初期の敵
+    createEnemy(300, -300); createEnemy(-300, -400);
 
     // 武器モデル
     const sword = new THREE.Group();
@@ -175,7 +179,7 @@
     shuriken.position.set(1.5, -1.2, -3); shuriken.rotation.x = Math.PI / 2; shuriken.visible = false;
     camera.add(shuriken); scene.add(camera);
 
-    // --- 2. 管理システム ---
+    // --- 3. 操作・管理システム ---
     const controls = new PointerLockControls(camera, document.body);
     const overlay = document.getElementById('start-overlay'), hud = document.getElementById('game-hud');
     const guardUI = document.getElementById('guard-overlay'), flashUI = document.getElementById('attack-flash');
@@ -184,6 +188,7 @@
 
     let playerHp = 100, recoveryCount = 2, isMapOpen = false, currentWeaponIndex = 1;
     let gameActive = false, startTime = 0, canAttack = true, isAttacking = false, isGuarding = false;
+    let lastSpawnTime = 0; // スポーン管理用
     const cooldowns = [500, 1000, 800], projectiles = [];
     const moveState = { f: false, b: false, l: false, r: false }, velocity = new THREE.Vector3();
     let gamepadIndex = null, lastButtons = {}, canJump = false;
@@ -194,7 +199,7 @@
         camera.position.y = getHeight(camera.position.x, camera.position.z) + 20;
         overlay.style.display = 'none'; hud.style.display = 'block'; document.getElementById('crosshair').style.display='block';
         enemies.forEach(e => e.alive && (e.label.style.display = 'block'));
-        if(!gameActive) { startTime = Date.now(); gameActive = true; }
+        if(!gameActive) { startTime = Date.now(); lastSpawnTime = startTime; gameActive = true; }
         updateStatusUI();
     }
 
@@ -208,10 +213,10 @@
     function handleGamepad(delta, now) {
         if (gamepadIndex === null) return;
         const gp = navigator.getGamepads()[gamepadIndex]; if (!gp) return;
-        const dz = 0.15;
-        const sX = Math.abs(gp.axes[0]) < dz ? 0 : gp.axes[0], sY = Math.abs(gp.axes[1]) < dz ? 0 : gp.axes[1];
         if (gp.buttons[9].pressed && !lastButtons[9]) startGame();
         if (controls.isLocked || gameActive) {
+            const dz = 0.15;
+            const sX = Math.abs(gp.axes[0]) < dz ? 0 : gp.axes[0], sY = Math.abs(gp.axes[1]) < dz ? 0 : gp.axes[1];
             moveState.f = sY < 0; moveState.b = sY > 0; moveState.l = sX < 0; moveState.r = sX > 0;
             camera.rotation.y -= (Math.abs(gp.axes[2]) < dz ? 0 : gp.axes[2]) * 3.0 * delta;
             camera.rotation.x -= (Math.abs(gp.axes[3]) < dz ? 0 : gp.axes[3]) * 3.0 * delta;
@@ -228,30 +233,31 @@
         gp.buttons.forEach((b, i) => lastButtons[i] = b.pressed);
     }
 
-    function useRecovery() { if (recoveryCount > 0 && playerHp < 100) { recoveryCount--; playerHp = Math.min(100, playerHp + 40); updateStatusUI(); recFlashUI.style.opacity = '0.4'; setTimeout(() => recFlashUI.style.opacity = '0', 500); } }
-    function updateStatusUI() { document.getElementById('hp-bar').style.width = playerHp + "%"; document.getElementById('hp-text').innerText = Math.round(playerHp); document.getElementById('item-count').innerText = "x" + recoveryCount; }
-
+    // --- 4. スポーン・戦闘機能 ---
     function performAttack() {
         canAttack = false; isAttacking = true; flashUI.style.opacity = '0.3'; document.getElementById('crosshair').classList.add('attacking');
         const activeSlot = [document.getElementById('slot-0'), document.getElementById('slot-1'), document.getElementById('slot-2')][currentWeaponIndex];
         activeSlot.classList.add('cooldown');
-        if (currentWeaponIndex === 1) { // ⚔️ 剣 射程8m攻撃
+        if (currentWeaponIndex === 1) { 
             sword.rotation.x = 1.0;
-            const MELEE_RANGE_8M = 120; // 【更新】8m相当
-            enemies.forEach(e => { if(e.alive && camera.position.distanceTo(e.mesh.position) < MELEE_RANGE_8M) applyDamage(e, 30); });
+            enemies.forEach(e => { if(e.alive && camera.position.distanceTo(e.mesh.position) < 120) applyDamage(e, 30); }); 
         } else if (currentWeaponIndex === 0) fireShuriken();
         setTimeout(() => { isAttacking = false; flashUI.style.opacity = '0'; document.getElementById('crosshair').classList.remove('attacking'); sword.rotation.x = -0.2; }, 150);
         setTimeout(() => { canAttack = true; activeSlot.classList.remove('cooldown'); }, cooldowns[currentWeaponIndex]);
     }
 
-    function fireShuriken() {
-        const p = shuriken.clone(); p.visible = true;
-        const vec = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-        p.position.copy(camera.position).add(vec.clone().multiplyScalar(5));
-        p.quaternion.copy(camera.quaternion); p.rotation.x = Math.PI/2;
-        scene.add(p); projectiles.push({ mesh: p, velocity: vec.multiplyScalar(500), life: 100 });
+    function spawnEnemyRoutine(now) {
+        // 10秒ごとにスポーン
+        if (now - lastSpawnTime > 10000) {
+            lastSpawnTime = now;
+            const dist = 600 + Math.random() * 200;
+            const angle = Math.random() * Math.PI * 2;
+            createEnemy(camera.position.x + Math.cos(angle) * dist, camera.position.z + Math.sin(angle) * dist);
+        }
     }
 
+    function useRecovery() { if (recoveryCount > 0 && playerHp < 100) { recoveryCount--; playerHp = Math.min(100, playerHp + 40); updateStatusUI(); recFlashUI.style.opacity = '0.4'; setTimeout(() => recFlashUI.style.opacity = '0', 500); } }
+    function updateStatusUI() { document.getElementById('hp-bar').style.width = playerHp + "%"; document.getElementById('hp-text').innerText = Math.round(playerHp); document.getElementById('item-count').innerText = "x" + recoveryCount; }
     function applyDamage(e, amt) { e.hp = Math.max(0, e.hp - amt); e.hpFill.style.width = e.hp + "%"; if(e.hp <= 0){ e.alive = false; scene.remove(e.mesh); e.label.style.display = 'none'; } }
     function updateWepUI() { [document.getElementById('slot-0'), document.getElementById('slot-1'), document.getElementById('slot-2')].forEach((s, i) => s.classList.toggle('active', i === currentWeaponIndex)); sword.visible = (currentWeaponIndex === 1); shuriken.visible = (currentWeaponIndex === 0); document.getElementById('attack-pwr').innerText = [36, 124, 45][currentWeaponIndex]; }
 
@@ -259,7 +265,7 @@
         enemies.forEach(e => {
             if (!e.alive) return;
             const dist = camera.position.distanceTo(e.mesh.position);
-            if (dist < 800 && dist > 55) {
+            if (dist < 1000 && dist > 55) {
                 const dir = new THREE.Vector3().subVectors(camera.position, e.mesh.position).normalize();
                 e.mesh.position.x += dir.x * e.speed * delta; e.mesh.position.z += dir.z * e.speed * delta;
                 e.mesh.position.y = getHeight(e.mesh.position.x, e.mesh.position.z);
@@ -276,6 +282,14 @@
         });
     }
 
+    function fireShuriken() {
+        const p = shuriken.clone(); p.visible = true;
+        const vec = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        p.position.copy(camera.position).add(vec.clone().multiplyScalar(5));
+        p.quaternion.copy(camera.quaternion); p.rotation.x = Math.PI/2;
+        scene.add(p); projectiles.push({ mesh: p, velocity: vec.multiplyScalar(500), life: 100 });
+    }
+
     function drawMap() {
         if (!isMapOpen) return;
         const s = mapCanvas.clientWidth; mapCanvas.width = s; mapCanvas.height = s;
@@ -287,11 +301,15 @@
     const ray = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 100);
     let prevTime = performance.now(), v3 = new THREE.Vector3();
 
+    // --- 5. メインループ ---
     function animate() {
         requestAnimationFrame(animate);
         const time = performance.now(), delta = Math.min((time - prevTime) / 1000, 0.05);
         handleGamepad(delta, time);
-        if (gameActive) updateAI(delta, time);
+        if (gameActive) {
+            updateAI(delta, time);
+            spawnEnemyRoutine(time);
+        }
         if (isMapOpen) drawMap();
 
         if (gameActive && (controls.isLocked || gamepadIndex !== null)) {
